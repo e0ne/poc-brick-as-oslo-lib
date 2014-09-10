@@ -19,7 +19,7 @@ import time
 from oslo.storage import exception
 from oslo.storage.initiator import connector
 from oslo.storage.initiator import host_driver
-from oslo.i18n import _
+from oslo.storage.i18n import _
 from oslo.storage.openstack.common import log as logging
 from oslo.storage.openstack.common import loopingcall
 from oslo.storage.openstack.common import processutils as putils

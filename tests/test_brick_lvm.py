@@ -20,13 +20,17 @@ from oslo.storage.local_dev import lvm as brick
 from oslo.storage.openstack.common import log as logging
 from oslo.storage.openstack.common import processutils
 from oslo.storage import test
-from cinder.volume import configuration as conf
+# from cinder.volume import configuration as conf
 
 LOG = logging.getLogger(__name__)
 
 
+class FakeConfiguration(object):
+    pass
+
+
 def create_configuration():
-    configuration = mox.MockObject(conf.Configuration)
+    configuration = mox.MockObject(FakeConfiguration)
     configuration.append_config_values(mox.IgnoreArg())
     return configuration
 
@@ -34,7 +38,7 @@ def create_configuration():
 class BrickLvmTestCase(test.TestCase):
     def setUp(self):
         self._mox = mox.Mox()
-        self.configuration = mox.MockObject(conf.Configuration)
+        self.configuration = mox.MockObject(FakeConfiguration)
         self.configuration.volume_group_name = 'fake-vg'
         super(BrickLvmTestCase, self).setUp()
 

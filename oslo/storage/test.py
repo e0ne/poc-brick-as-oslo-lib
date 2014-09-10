@@ -15,98 +15,33 @@
 #    under the License.
 
 """Base classes for our unit tests.
-
-Allows overriding of CONF for use of fakes, and some black magic for
-inline callbacks.
-
 """
 
 import logging
 import os
 import shutil
 import tempfile
-import uuid
 
 import fixtures
 import mox
-from oslo.config import cfg
-from oslo.messaging import conffixture as messaging_conffixture
 import stubout
 import testtools
 from testtools import matchers
 
-from cinder.common import config  # noqa Need to register global_opts
-from cinder.db import migration
-from cinder.db.sqlalchemy import api as sqla_api
-from cinder.openstack.common import log as oslo_logging
-from cinder.openstack.common import strutils
-from cinder.openstack.common import timeutils
-from cinder import rpc
-from cinder import service
-from cinder.tests import conf_fixture
-from cinder.tests import fake_notifier
+from oslo.storage.openstack.common import log as oslo_logging
+from oslo.storage.openstack.common import strutils
+from oslo.storage.openstack.common import timeutils
 
-test_opts = [
-    cfg.StrOpt('sqlite_clean_db',
-               default='clean.sqlite',
-               help='File name of clean sqlite db'), ]
-
-CONF = cfg.CONF
-CONF.register_opts(test_opts)
 
 LOG = oslo_logging.getLogger(__name__)
-
-_DB_CACHE = None
 
 
 class TestingException(Exception):
     pass
 
 
-class Database(fixtures.Fixture):
-
-    def __init__(self, db_api, db_migrate, sql_connection,
-                 sqlite_db, sqlite_clean_db):
-        self.sql_connection = sql_connection
-        self.sqlite_db = sqlite_db
-        self.sqlite_clean_db = sqlite_clean_db
-
-        self.engine = db_api.get_engine()
-        self.engine.dispose()
-        conn = self.engine.connect()
-        if sql_connection == "sqlite://":
-            if db_migrate.db_version() > db_migrate.db_initial_version():
-                return
-        else:
-            testdb = os.path.join(CONF.state_path, sqlite_db)
-            if os.path.exists(testdb):
-                return
-        db_migrate.db_sync()
-#        self.post_migrations()
-        if sql_connection == "sqlite://":
-            conn = self.engine.connect()
-            self._DB = "".join(line for line in conn.connection.iterdump())
-            self.engine.dispose()
-        else:
-            cleandb = os.path.join(CONF.state_path, sqlite_clean_db)
-            shutil.copyfile(testdb, cleandb)
-
-    def setUp(self):
-        super(Database, self).setUp()
-
-        if self.sql_connection == "sqlite://":
-            conn = self.engine.connect()
-            conn.connection.executescript(self._DB)
-            self.addCleanup(self.engine.dispose)
-        else:
-            shutil.copyfile(
-                os.path.join(CONF.state_path, self.sqlite_clean_db),
-                os.path.join(CONF.state_path, self.sqlite_db))
-
-
 class TestCase(testtools.TestCase):
     """Test case base class for all unit tests."""
-
     def setUp(self):
         """Run before each test method to initialize test environment."""
         super(TestCase, self).setUp()
@@ -140,40 +75,16 @@ class TestCase(testtools.TestCase):
                                                    format=log_format,
                                                    level=level))
 
-        rpc.add_extra_exmods("cinder.tests")
-        self.addCleanup(rpc.clear_extra_exmods)
-        self.addCleanup(rpc.cleanup)
-
-        self.messaging_conf = messaging_conffixture.ConfFixture(CONF)
-        self.messaging_conf.transport_driver = 'fake'
-        self.messaging_conf.response_timeout = 15
-        self.useFixture(self.messaging_conf)
-        rpc.init(CONF)
-
-        conf_fixture.set_defaults(CONF)
-        CONF([], default_config_files=[])
-
         # NOTE(vish): We need a better method for creating fixtures for tests
         #             now that we have some required db setup for the system
         #             to work properly.
         self.start = timeutils.utcnow()
 
-        CONF.set_default('connection', 'sqlite://', 'database')
-        CONF.set_default('sqlite_synchronous', False, 'database')
-
-        global _DB_CACHE
-        if not _DB_CACHE:
-            _DB_CACHE = Database(sqla_api, migration,
-                                 sql_connection=CONF.database.connection,
-                                 sqlite_db=CONF.database.sqlite_db,
-                                 sqlite_clean_db=CONF.sqlite_clean_db)
-        self.useFixture(_DB_CACHE)
 
         # emulate some of the mox stuff, we can't use the metaclass
         # because it screws with our generators
         self.mox = mox.Mox()
         self.stubs = stubout.StubOutForTesting()
-        self.addCleanup(CONF.reset)
         self.addCleanup(self.mox.UnsetStubs)
         self.addCleanup(self.stubs.UnsetAll)
         self.addCleanup(self.stubs.SmartUnsetAll)
@@ -181,21 +92,6 @@ class TestCase(testtools.TestCase):
         self.addCleanup(self._common_cleanup)
         self.injected = []
         self._services = []
-
-        fake_notifier.stub_notifier(self.stubs)
-
-        CONF.set_override('fatal_exception_format_errors', True)
-        # This will be cleaned up by the NestedTempfile fixture
-        CONF.set_override('lock_path', tempfile.mkdtemp())
-        CONF.set_override('policy_file',
-                          os.path.join(
-                              os.path.abspath(
-                                  os.path.join(
-                                      os.path.dirname(__file__),
-                                      '..',
-                                  )
-                              ),
-                              'cinder/tests/policy.json'))
 
     def _common_cleanup(self):
         """Runs after each test method to tear down test environment."""
@@ -220,24 +116,10 @@ class TestCase(testtools.TestCase):
         for key in [k for k in self.__dict__.keys() if k[0] != '_']:
             del self.__dict__[key]
 
-    def flags(self, **kw):
-        """Override CONF variables for a test."""
-        for k, v in kw.iteritems():
-            CONF.set_override(k, v)
-
     def log_level(self, level):
         """Set logging level to the specified value."""
         log_root = logging.getLogger(None).logger
         log_root.setLevel(level)
-
-    def start_service(self, name, host=None, **kwargs):
-        host = host and host or uuid.uuid4().hex
-        kwargs.setdefault('host', host)
-        kwargs.setdefault('binary', 'cinder-%s' % name)
-        svc = service.Service.create(**kwargs)
-        svc.start()
-        self._services.append(svc)
-        return svc
 
     # Useful assertions
     def assertDictMatch(self, d1, d2, approx_equal=False, tolerance=0.001):

@@ -18,7 +18,7 @@ import mox
 
 from oslo.storage import exception
 from oslo.storage.remotefs import remotefs
-from oslo.i18n import _
+from oslo.storage.i18n import _
 from oslo.storage.openstack.common import log as logging
 from oslo.storage import test
 

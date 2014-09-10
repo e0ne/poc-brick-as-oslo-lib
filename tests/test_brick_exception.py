@@ -38,9 +38,6 @@ class BrickExceptionTestCase(test.TestCase):
         self.assertEqual(unicode(exc), 'default message: 500')
 
     def test_error_msg_exception_with_kwargs(self):
-        # NOTE(dprince): disable format errors for this test
-        self.flags(fatal_exception_format_errors=False)
-
         class FakeBrickException(exception.BrickException):
             message = "default message: %(mispelled_code)s"
 
