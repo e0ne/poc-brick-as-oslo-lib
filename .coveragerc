@@ -1,0 +1,7 @@
+[run]
+branch = True
+source = storage
+omit = storage/tests/*,storage/openstack/*
+
+[report]
+ignore-errors = True
