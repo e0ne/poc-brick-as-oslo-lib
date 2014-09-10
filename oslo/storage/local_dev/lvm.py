@@ -23,7 +23,7 @@ import re
 
 from oslo.storage import exception
 from oslo.storage import executor
-from oslo.storage import _
+from oslo.storage.i18n import _
 from oslo.storage.openstack.common import log as logging
 from oslo.storage.openstack.common import processutils as putils
 

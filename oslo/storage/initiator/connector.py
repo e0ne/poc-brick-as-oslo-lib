@@ -23,7 +23,7 @@ from oslo.storage.initiator import host_driver
 from oslo.storage.initiator import linuxfc
 from oslo.storage.initiator import linuxscsi
 from oslo.storage.remotefs import remotefs
-from oslo.i18n import _
+from oslo.storage.i18n import _
 from oslo.storage.openstack.common import lockutils
 from oslo.storage.openstack.common import log as logging
 from oslo.storage.openstack.common import loopingcall

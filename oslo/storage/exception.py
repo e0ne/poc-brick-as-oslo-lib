@@ -14,7 +14,7 @@
 
 """Exceptions for the Brick library."""
 
-from oslo.i18n import _
+from oslo.storage.i18n import _
 from oslo.storage.openstack.common import log as logging
 
 

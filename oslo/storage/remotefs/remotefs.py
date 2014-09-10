@@ -22,7 +22,7 @@ import re
 import six
 
 from oslo.storage import exception
-from oslo.i18n import _
+from oslo.storage.i18n import _
 from oslo.storage.openstack.common import log as logging
 from oslo.storage.openstack.common import processutils as putils
 
