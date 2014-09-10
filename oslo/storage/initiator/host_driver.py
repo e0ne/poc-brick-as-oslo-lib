@@ -1,5 +1,6 @@
-# vim: tabstop=4 shiftwidth=4 softtabstop=4
-
+# Copyright 2013 OpenStack Foundation.
+# All Rights Reserved.
+#
 #    Licensed under the Apache License, Version 2.0 (the "License"); you may
 #    not use this file except in compliance with the License. You may obtain
 #    a copy of the License at
@@ -12,4 +13,18 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-__import__('pkg_resources').declare_namespace(__name__)
+import os
+
+
+class HostDriver(object):
+
+    def get_all_block_devices(self):
+        """Get the list of all block devices seen in /dev/disk/by-path/."""
+        files = []
+        dir = "/dev/disk/by-path/"
+        if os.path.isdir(dir):
+            files = os.listdir(dir)
+        devices = []
+        for file in files:
+            devices.append(dir + file)
+        return devices
